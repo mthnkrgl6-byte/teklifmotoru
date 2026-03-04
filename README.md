@@ -11,6 +11,7 @@ AI-powered quotation system for plumbing materials companies. The app ingests cu
 - Product matching with fuzzy logic + diameter scoring
 - Quotation generation with subtotal, discount, VAT (20%), grand total
 - Export quotation to Excel and PDF
+- Dashboard with tabs: teklif analizi, güncel fiyat listesi yükleme, teklif seçenekleri
 - React dashboard for upload, detection results, quotation table, exports
 
 ## Project Structure
@@ -65,7 +66,9 @@ Run `backend/scripts/seed_products.sql` in your PostgreSQL database.
 
 ## API Endpoints
 - `GET /api/health`
-- `POST /api/analyze` (`multipart/form-data` with `file`, optional `discount`)
+- `POST /api/analyze` (`multipart/form-data` with `file`, optional `discount`, `vat_rate`, `include_vat`)
+- `GET /api/products`
+- `POST /api/products/upload-pricelist` (xlsx/csv with columns: product_code, product_name, diameter, unit, price)
 - `POST /api/export/xlsx`
 - `POST /api/export/pdf`
 

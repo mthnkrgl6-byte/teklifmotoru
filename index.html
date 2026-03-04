@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Plumbing Product Detection Engine</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>AI Plumbing Product Detection Engine</h1>
+    <p class="muted">Yükleme, fiyat listesi yönetimi ve teklif seçenekleri tek panelde.</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="analysisTab">Teklif Analizi</button>
+      <button class="tab-btn" data-tab="priceListTab">Güncel Fiyat Listesi</button>
+      <button class="tab-btn" data-tab="quoteOptionsTab">Teklif Seçenekleri</button>
+    </div>
+
+    <section id="analysisTab" class="tab-panel">
+      <section class="card">
+        <label>Dosya (xlsx / pdf / jpg / png)</label>
+        <input id="file" type="file" accept=".xlsx,.pdf,.jpg,.jpeg,.png" />
+        <div class="row">
+          <button id="analyzeBtn">Analiz Et</button>
+          <span id="status" class="muted"></span>
+        </div>
+      </section>
+
+      <section id="results" class="hidden">
+        <div class="card">
+          <h2>Algılanan Ürünler</h2>
+          <ul id="detectedList"></ul>
+        </div>
+
+        <div class="card">
+          <h2>Teklif Tablosu</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Ürün</th><th>Kod</th><th>Çap</th><th>Miktar</th><th>Birim</th><th>Toplam</th>
+              </tr>
+            </thead>
+            <tbody id="quoteBody"></tbody>
+          </table>
+          <div id="summary" class="summary"></div>
+          <div class="row">
+            <button id="excelBtn">Excel İndir</button>
+            <button id="pdfBtn">PDF İndir</button>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section id="priceListTab" class="tab-panel hidden">
+      <div class="card">
+        <h2>Güncel Fiyat Listesi Yükleme</h2>
+        <p class="muted">Beklenen sütunlar: product_code, product_name, diameter, unit, price</p>
+        <input id="priceFile" type="file" accept=".xlsx,.csv" />
+        <div class="row">
+          <button id="uploadPriceBtn">Fiyat Listesini Yükle</button>
+          <span id="priceStatus" class="muted"></span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Mevcut Ürünler</h2>
+        <button id="refreshProductsBtn">Listeyi Yenile</button>
+        <table>
+          <thead>
+            <tr><th>Kod</th><th>Ürün</th><th>Çap</th><th>Birim</th><th>Fiyat</th></tr>
+          </thead>
+          <tbody id="productsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="quoteOptionsTab" class="tab-panel hidden">
+      <div class="card">
+        <h2>Teklif Seçenekleri</h2>
+        <label>İndirim</label>
+        <input id="discount" type="number" step="0.01" min="0" value="0" />
+        <label>KDV Oranı (örn: 0.20)</label>
+        <input id="vatRate" type="number" step="0.01" min="0" value="0.20" />
+        <label class="checkbox-row">
+          <input id="includeVat" type="checkbox" checked />
+          KDV dahil hesapla
+        </label>
+        <p class="muted">Bu seçenekler "Analiz Et" işleminde kullanılacaktır.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

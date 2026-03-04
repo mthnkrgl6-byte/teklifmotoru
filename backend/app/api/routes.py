@@ -1,10 +1,13 @@
 from io import BytesIO
 
+import pandas as pd
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.models.product import Product
 from app.schemas.quotation import AnalysisResponse
 from app.services.detection import detect_products
 from app.services.exporters import export_excel, export_pdf
@@ -19,10 +22,72 @@ def health():
     return {"status": "ok"}
 
 
+@router.get("/products")
+def list_products(db: Session = Depends(get_db)):
+    products = db.scalars(select(Product)).all()
+    return [
+        {
+            "product_code": p.product_code,
+            "product_name": p.product_name,
+            "diameter": p.diameter,
+            "unit": p.unit,
+            "price": p.price,
+        }
+        for p in products
+    ]
+
+
+@router.post("/products/upload-pricelist")
+async def upload_pricelist(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    content = await file.read()
+    extension = (file.filename or "").lower().split(".")[-1]
+    if extension not in {"xlsx", "csv"}:
+        raise HTTPException(status_code=400, detail="Price list must be .xlsx or .csv")
+
+    if extension == "xlsx":
+        df = pd.read_excel(BytesIO(content))
+    else:
+        df = pd.read_csv(BytesIO(content))
+
+    required_cols = {"product_code", "product_name", "diameter", "unit", "price"}
+    missing = required_cols.difference(df.columns)
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Missing columns: {', '.join(sorted(missing))}")
+
+    created = 0
+    updated = 0
+
+    for row in df.fillna("").to_dict(orient="records"):
+        existing = db.scalar(select(Product).where(Product.product_code == str(row["product_code"])))
+        if existing:
+            existing.product_name = str(row["product_name"])
+            existing.diameter = str(row["diameter"]) or None
+            existing.unit = str(row["unit"]) or "adet"
+            existing.price = float(row["price"])
+            updated += 1
+            continue
+
+        db.add(
+            Product(
+                product_code=str(row["product_code"]),
+                product_name=str(row["product_name"]),
+                diameter=str(row["diameter"]) or None,
+                unit=str(row["unit"]) or "adet",
+                price=float(row["price"]),
+            )
+        )
+        created += 1
+
+    db.commit()
+    return {"created": created, "updated": updated, "total": created + updated}
+
+
 @router.post("/analyze", response_model=AnalysisResponse)
 async def analyze_file(
     file: UploadFile = File(...),
     discount: float = Form(0.0),
+    vat_rate: float = Form(0.2),
+    include_vat: bool = Form(True),
     db: Session = Depends(get_db),
 ):
     content = await file.read()
@@ -33,7 +98,11 @@ async def analyze_file(
 
     detected_items = detect_products(extracted_text)
     quotation_rows = match_items(db, detected_items)
-    summary = calculate_summary(quotation_rows, discount=discount)
+    summary = calculate_summary(
+        quotation_rows,
+        discount=discount,
+        vat_rate=vat_rate if include_vat else 0,
+    )
 
     return AnalysisResponse(
         extracted_text=extracted_text,
