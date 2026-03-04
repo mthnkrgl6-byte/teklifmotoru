@@ -37,6 +37,11 @@ def list_products(db: Session = Depends(get_db)):
     ]
 
 
+def parse_price(value: object) -> float:
+    raw = str(value).strip().replace(" ", "").replace(",", ".")
+    return float(raw)
+
+
 @router.post("/products/upload-pricelist")
 async def upload_pricelist(file: UploadFile = File(...), db: Session = Depends(get_db)):
     content = await file.read()
@@ -47,9 +52,12 @@ async def upload_pricelist(file: UploadFile = File(...), db: Session = Depends(g
     if extension == "xlsx":
         df = pd.read_excel(BytesIO(content))
     else:
-        df = pd.read_csv(BytesIO(content))
+        try:
+            df = pd.read_csv(BytesIO(content), sep=None, engine="python")
+        except Exception:
+            df = pd.read_csv(BytesIO(content))
 
-    required_cols = {"product_code", "product_name", "diameter", "unit", "price"}
+    required_cols = {"product_code", "product_name", "price"}
     missing = required_cols.difference(df.columns)
     if missing:
         raise HTTPException(status_code=400, detail=f"Missing columns: {', '.join(sorted(missing))}")
@@ -58,22 +66,36 @@ async def upload_pricelist(file: UploadFile = File(...), db: Session = Depends(g
     updated = 0
 
     for row in df.fillna("").to_dict(orient="records"):
-        existing = db.scalar(select(Product).where(Product.product_code == str(row["product_code"])))
+        product_code = str(row.get("product_code", "")).strip()
+        product_name = str(row.get("product_name", "")).strip()
+
+        if not product_code or not product_name:
+            continue
+
+        try:
+            price = parse_price(row.get("price", "0"))
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid price for product_code={product_code}") from exc
+
+        existing = db.scalar(select(Product).where(Product.product_code == product_code))
+        diameter = str(row.get("diameter", "")).strip() or None
+        unit = str(row.get("unit", "")).strip() or "adet"
+
         if existing:
-            existing.product_name = str(row["product_name"])
-            existing.diameter = str(row["diameter"]) or None
-            existing.unit = str(row["unit"]) or "adet"
-            existing.price = float(row["price"])
+            existing.product_name = product_name
+            existing.diameter = diameter
+            existing.unit = unit
+            existing.price = price
             updated += 1
             continue
 
         db.add(
             Product(
-                product_code=str(row["product_code"]),
-                product_name=str(row["product_name"]),
-                diameter=str(row["diameter"]) or None,
-                unit=str(row["unit"]) or "adet",
-                price=float(row["price"]),
+                product_code=product_code,
+                product_name=product_name,
+                diameter=diameter,
+                unit=unit,
+                price=price,
             )
         )
         created += 1
@@ -84,17 +106,25 @@ async def upload_pricelist(file: UploadFile = File(...), db: Session = Depends(g
 
 @router.post("/analyze", response_model=AnalysisResponse)
 async def analyze_file(
-    file: UploadFile = File(...),
+    file: UploadFile | None = File(None),
+    raw_text: str | None = Form(None),
     discount: float = Form(0.0),
     vat_rate: float = Form(0.2),
     include_vat: bool = Form(True),
     db: Session = Depends(get_db),
 ):
-    content = await file.read()
-    try:
-        extracted_text = extract_text(file.filename, content)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    extracted_text = ""
+
+    if file is not None:
+        content = await file.read()
+        try:
+            extracted_text = extract_text(file.filename, content)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    elif raw_text and raw_text.strip():
+        extracted_text = raw_text.strip()
+    else:
+        raise HTTPException(status_code=400, detail="Provide either a file or raw_text")
 
     detected_items = detect_products(extracted_text)
     quotation_rows = match_items(db, detected_items)

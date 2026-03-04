@@ -1,6 +1,7 @@
 const API_BASE = 'http://localhost:8000/api';
 
 const fileInput = document.getElementById('file');
+const rawTextInput = document.getElementById('rawText');
 const discountInput = document.getElementById('discount');
 const vatRateInput = document.getElementById('vatRate');
 const includeVatInput = document.getElementById('includeVat');
@@ -116,10 +117,21 @@ async function downloadQuote(format) {
   URL.revokeObjectURL(url);
 }
 
+async function parseError(response) {
+  try {
+    const payload = await response.json();
+    return payload.detail || JSON.stringify(payload);
+  } catch {
+    return `${response.status}`;
+  }
+}
+
 analyzeBtn.addEventListener('click', async () => {
   const file = fileInput.files[0];
-  if (!file) {
-    setStatus('Lütfen bir dosya seçin.');
+  const rawText = rawTextInput.value.trim();
+
+  if (!file && !rawText) {
+    setStatus('Dosya seçin veya metin girin.');
     return;
   }
 
@@ -128,7 +140,12 @@ analyzeBtn.addEventListener('click', async () => {
 
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    if (file) {
+      formData.append('file', file);
+    }
+    if (rawText) {
+      formData.append('raw_text', rawText);
+    }
     formData.append('discount', discountInput.value || '0');
     formData.append('vat_rate', vatRateInput.value || '0.2');
     formData.append('include_vat', includeVatInput.checked ? 'true' : 'false');
@@ -139,7 +156,7 @@ analyzeBtn.addEventListener('click', async () => {
     });
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      throw new Error(await parseError(response));
     }
 
     analysisPayload = await response.json();
@@ -172,7 +189,7 @@ uploadPriceBtn.addEventListener('click', async () => {
     });
 
     if (!response.ok) {
-      throw new Error(`Yükleme hatası: ${response.status}`);
+      throw new Error(await parseError(response));
     }
 
     const payload = await response.json();

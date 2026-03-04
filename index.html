@@ -9,7 +9,7 @@
 <body>
   <main class="container">
     <h1>AI Plumbing Product Detection Engine</h1>
-    <p class="muted">Yükleme, fiyat listesi yönetimi ve teklif seçenekleri tek panelde.</p>
+    <p class="muted">Yükleme, metin analizi, fiyat listesi yönetimi ve teklif seçenekleri tek panelde.</p>
 
     <div class="tabs">
       <button class="tab-btn active" data-tab="analysisTab">Teklif Analizi</button>
@@ -21,6 +21,11 @@
       <section class="card">
         <label>Dosya (xlsx / pdf / jpg / png)</label>
         <input id="file" type="file" accept=".xlsx,.pdf,.jpg,.jpeg,.png" />
+        <label>veya metin olarak ürün listesi girin</label>
+        <textarea id="rawText" rows="6" placeholder="Örn:
+110 pvc dirsek
+32 ppr boru
+20 küresel vana"></textarea>
         <div class="row">
           <button id="analyzeBtn">Analiz Et</button>
           <span id="status" class="muted"></span>
@@ -55,7 +60,7 @@
     <section id="priceListTab" class="tab-panel hidden">
       <div class="card">
         <h2>Güncel Fiyat Listesi Yükleme</h2>
-        <p class="muted">Beklenen sütunlar: product_code, product_name, diameter, unit, price</p>
+        <p class="muted">Zorunlu sütunlar: product_code, product_name, price. Opsiyonel: diameter, unit</p>
         <input id="priceFile" type="file" accept=".xlsx,.csv" />
         <div class="row">
           <button id="uploadPriceBtn">Fiyat Listesini Yükle</button>

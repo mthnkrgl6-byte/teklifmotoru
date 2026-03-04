@@ -66,9 +66,9 @@ Run `backend/scripts/seed_products.sql` in your PostgreSQL database.
 
 ## API Endpoints
 - `GET /api/health`
-- `POST /api/analyze` (`multipart/form-data` with `file`, optional `discount`, `vat_rate`, `include_vat`)
+- `POST /api/analyze` (`multipart/form-data` with `file` veya `raw_text`, optional `discount`, `vat_rate`, `include_vat`)
 - `GET /api/products`
-- `POST /api/products/upload-pricelist` (xlsx/csv with columns: product_code, product_name, diameter, unit, price)
+- `POST /api/products/upload-pricelist` (xlsx/csv with required: product_code, product_name, price; optional: diameter, unit)
 - `POST /api/export/xlsx`
 - `POST /api/export/pdf`
 
