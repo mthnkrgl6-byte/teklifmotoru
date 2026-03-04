@@ -1,10 +1,28 @@
-const API_BASE = 'http://localhost:8000/api';
+const DEFAULT_API_BASE = 'http://localhost:8000/api';
+
+function getInitialApiBase() {
+  const fromQuery = new URLSearchParams(window.location.search).get('api_base');
+  if (fromQuery) return fromQuery.replace(/\/$/, '');
+
+  const fromStorage = localStorage.getItem('api_base');
+  if (fromStorage) return fromStorage.replace(/\/$/, '');
+
+  if (window.location.protocol.startsWith('http')) {
+    return `${window.location.origin}/api`;
+  }
+
+  return DEFAULT_API_BASE;
+}
+
+let API_BASE = getInitialApiBase();
 
 const fileInput = document.getElementById('file');
 const rawTextInput = document.getElementById('rawText');
 const discountInput = document.getElementById('discount');
 const vatRateInput = document.getElementById('vatRate');
 const includeVatInput = document.getElementById('includeVat');
+const apiBaseInput = document.getElementById('apiBase');
+const saveApiBtn = document.getElementById('saveApiBtn');
 const analyzeBtn = document.getElementById('analyzeBtn');
 const excelBtn = document.getElementById('excelBtn');
 const pdfBtn = document.getElementById('pdfBtn');
@@ -21,6 +39,7 @@ const refreshProductsBtn = document.getElementById('refreshProductsBtn');
 const productsBody = document.getElementById('productsBody');
 
 let analysisPayload = null;
+apiBaseInput.value = API_BASE;
 
 function setStatus(text) {
   statusText.textContent = text;
@@ -28,6 +47,12 @@ function setStatus(text) {
 
 function setPriceStatus(text) {
   priceStatus.textContent = text;
+}
+
+function setApiBase(url) {
+  API_BASE = url.replace(/\/$/, '');
+  localStorage.setItem('api_base', API_BASE);
+  apiBaseInput.value = API_BASE;
 }
 
 function setupTabs() {
@@ -126,6 +151,13 @@ async function parseError(response) {
   }
 }
 
+function mapNetworkError(error) {
+  if (String(error.message || '').includes('Failed to fetch')) {
+    return `Backend'e ulaşılamadı. API URL'ini kontrol edin: ${API_BASE}`;
+  }
+  return error.message;
+}
+
 analyzeBtn.addEventListener('click', async () => {
   const file = fileInput.files[0];
   const rawText = rawTextInput.value.trim();
@@ -140,30 +172,20 @@ analyzeBtn.addEventListener('click', async () => {
 
   try {
     const formData = new FormData();
-    if (file) {
-      formData.append('file', file);
-    }
-    if (rawText) {
-      formData.append('raw_text', rawText);
-    }
+    if (file) formData.append('file', file);
+    if (rawText) formData.append('raw_text', rawText);
     formData.append('discount', discountInput.value || '0');
     formData.append('vat_rate', vatRateInput.value || '0.2');
     formData.append('include_vat', includeVatInput.checked ? 'true' : 'false');
 
-    const response = await fetch(`${API_BASE}/analyze`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseError(response));
-    }
+    const response = await fetch(`${API_BASE}/analyze`, { method: 'POST', body: formData });
+    if (!response.ok) throw new Error(await parseError(response));
 
     analysisPayload = await response.json();
     renderResults(analysisPayload);
     setStatus('Analiz tamamlandı.');
   } catch (error) {
-    setStatus(`Hata: ${error.message}`);
+    setStatus(`Hata: ${mapNetworkError(error)}`);
   } finally {
     analyzeBtn.disabled = false;
   }
@@ -183,20 +205,14 @@ uploadPriceBtn.addEventListener('click', async () => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_BASE}/products/upload-pricelist`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseError(response));
-    }
+    const response = await fetch(`${API_BASE}/products/upload-pricelist`, { method: 'POST', body: formData });
+    if (!response.ok) throw new Error(await parseError(response));
 
     const payload = await response.json();
     setPriceStatus(`Tamamlandı. Yeni: ${payload.created}, Güncellenen: ${payload.updated}`);
     await loadProducts();
   } catch (error) {
-    setPriceStatus(`Hata: ${error.message}`);
+    setPriceStatus(`Hata: ${mapNetworkError(error)}`);
   } finally {
     uploadPriceBtn.disabled = false;
   }
@@ -207,7 +223,19 @@ refreshProductsBtn.addEventListener('click', async () => {
     await loadProducts();
     setPriceStatus('Ürün listesi güncellendi.');
   } catch (error) {
-    setPriceStatus(`Hata: ${error.message}`);
+    setPriceStatus(`Hata: ${mapNetworkError(error)}`);
+  }
+});
+
+saveApiBtn.addEventListener('click', async () => {
+  const value = apiBaseInput.value.trim();
+  if (!value) return;
+  setApiBase(value);
+  setStatus(`API URL kaydedildi: ${API_BASE}`);
+  try {
+    await loadProducts();
+  } catch {
+    // no-op
   }
 });
 
@@ -215,7 +243,7 @@ excelBtn.addEventListener('click', async () => {
   try {
     await downloadQuote('xlsx');
   } catch (error) {
-    setStatus(`Excel indirilemedi: ${error.message}`);
+    setStatus(`Excel indirilemedi: ${mapNetworkError(error)}`);
   }
 });
 
@@ -223,9 +251,9 @@ pdfBtn.addEventListener('click', async () => {
   try {
     await downloadQuote('pdf');
   } catch (error) {
-    setStatus(`PDF indirilemedi: ${error.message}`);
+    setStatus(`PDF indirilemedi: ${mapNetworkError(error)}`);
   }
 });
 
 setupTabs();
-loadProducts().catch(() => setPriceStatus('Ürünler yüklenemedi (backend kapalı olabilir).'));
+loadProducts().catch(() => setPriceStatus(`Ürünler yüklenemedi. API URL: ${API_BASE}`));

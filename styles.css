@@ -18,3 +18,5 @@ th, td { border:1px solid #e3e8ef; padding:8px; font-size:14px; }
 .tab-panel { margin-top: 6px; }
 .checkbox-row { display:flex; gap:8px; align-items:center; }
 .checkbox-row input { width:auto; }
+
+#apiBase { flex: 1; min-width: 320px; }

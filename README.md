@@ -12,6 +12,7 @@ AI-powered quotation system for plumbing materials companies. The app ingests cu
 - Quotation generation with subtotal, discount, VAT (20%), grand total
 - Export quotation to Excel and PDF
 - Dashboard with tabs: teklif analizi, güncel fiyat listesi yükleme, teklif seçenekleri
+- UI içinden Backend API URL ayarlanabilir (NetworkError durumları için)
 - React dashboard for upload, detection results, quotation table, exports
 
 ## Project Structure
@@ -43,6 +44,7 @@ AI-powered quotation system for plumbing materials companies. The app ingests cu
 3. Open:
    - Frontend: http://localhost:5173
    - Backend docs: http://localhost:8000/docs
+   - Not: Root statik panelde "Backend API URL" alanı ile API adresini güncelleyebilirsiniz.
 
 ## Manual Setup
 ### Backend
