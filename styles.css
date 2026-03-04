@@ -1,0 +1,22 @@
+:root { font-family: Inter, Arial, sans-serif; }
+body { margin: 0; background: #f3f6fb; color: #13233a; }
+.container { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+.card { background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.08); padding: 16px; margin-bottom: 16px; }
+label { display:block; font-size: 14px; margin: 8px 0 4px; }
+input, textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #cfd9e6; border-radius: 6px; font: inherit; }
+button { border: 0; background: #0a66c2; color:#fff; padding: 10px 14px; border-radius: 6px; cursor: pointer; }
+button:disabled { opacity:.6; cursor: not-allowed; }
+.row { display:flex; gap:8px; align-items:center; margin-top: 12px; flex-wrap: wrap; }
+.muted { color:#61748d; font-size:14px; }
+.hidden { display:none; }
+table { width:100%; border-collapse: collapse; margin-top: 8px; }
+th, td { border:1px solid #e3e8ef; padding:8px; font-size:14px; }
+.summary p { margin: 4px 0; font-weight: 600; }
+.tabs { display:flex; gap:8px; margin: 16px 0; }
+.tab-btn { background:#dce8f8; color:#123; }
+.tab-btn.active { background:#0a66c2; color:#fff; }
+.tab-panel { margin-top: 6px; }
+.checkbox-row { display:flex; gap:8px; align-items:center; }
+.checkbox-row input { width:auto; }
+
+#apiBase { flex: 1; min-width: 320px; }
